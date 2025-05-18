@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assistenza Anziani - Prof. Maurizio Ricci</title>
+    <style>
+        :root {
+            font-size: 20px;
+            --primary: #0066cc;
+            --error: #cc0000;
+            --success: #009900;
+            --background: #f8f9fa;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: var(--background);
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+
+        select, button {
+            font-size: 1.2rem;
+            padding: 12px;
+            margin: 10px 0;
+            width: 100%;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+        }
+
+        iframe {
+            width: 100%;
+            height: 60vh;
+            border: 2px solid var(--primary);
+            margin-top: 20px;
+            background: white;
+        }
+
+        .chat-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .chat-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        #contrastButton {
+            position: fixed;
+            bottom: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.9);
+            border: 2px solid #ccc;
+            padding: 10px;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            opacity: 0.8;
+            cursor: pointer;
+        }
+
+        .footer {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            padding: 15px 0;
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+            border-top: 1px solid #ddd;
+        }
+
+        .high-contrast {
+            --background: #000 !important;
+            color: #fff !important;
+        }
+        .high-contrast select,
+        .high-contrast button {
+            background-color: #000 !important;
+            color: #fff !important;
+            border-color: #fff !important;
+        }
+    </style>
+</head>
+<body>
+    <button id="contrastButton" onclick="toggleContrast()" aria-label="Alto contrasto">
+        🌓
+    </button>
+
+    <h1>📰 Piattaforma di Lettura e Compagnia</h1>
+
+    <select id="giornali">
+        <option value="">Seleziona Giornale</option>
+        <option value="https://www.giornaledibrescia.it/valcamonica">Valcamonica</option>
+        <option value="https://www.giornaledibrescia.it">GdB Brescia</option>
+        <option value="https://www.avvenire.it">Avvenire</option>
+        <option value="https://www.repubblica.it">La Repubblica</option>
+        <option value="https://www.corriere.it">Corriere della Sera</option>
+        <option value="https://www.bresciatoday.it">Brescia Today</option>
+        <option value="https://www.bergamonews.it">Bergamo News</option>
+        <option value="https://www.quibrescia.it">Qui Brescia</option>
+    </select>
+
+    <iframe id="visualizzatore" src="about:blank" title="Visualizzatore giornale"></iframe>
+
+    <div class="chat-section">
+        <h2>🎤 Chat Vocale</h2>
+        <div class="chat-buttons">
+            <button onclick="startRecording()" style="background-color: var(--primary); color: white;">
+                Registra
+            </button>
+            <button onclick="stopRecording()" style="background-color: var(--error); color: white;">
+                Ferma
+            </button>
+            <button onclick="sendRecording()" style="background-color: var(--success); color: white;">
+                Invia
+            </button>
+            <button onclick="cancelRecording()" style="background-color: #ffc107; color: black;">
+                Cancella
+            </button>
+        </div>
+        <div id="chatStatus" style="margin-top: 15px;"></div>
+    </div>
+
+    <div class="footer">
+        Questo servizio è un'idea del prof. Maurizio Ricci © 2025
+    </div>
+
+    <script>
+        // Gestione giornali
+        document.getElementById('giornali').addEventListener('change', function() {
+            const url = this.value;
+            const iframe = document.getElementById('visualizzatore');
+            iframe.src = url || 'about:blank';
+        });
+
+        // Chat vocale
+        let mediaRecorder;
+        let audioChunks = [];
+
+        function showStatus(text, isError = false) {
+            const statusDiv = document.getElementById('chatStatus');
+            statusDiv.innerHTML = text;
+            statusDiv.style.color = isError ? 'red' : 'green';
+        }
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                
+                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    showStatus(`Registrazione completata! Durata: ${Math.round(audioBlob.size / 1000)} secondi`);
+                };
+
+                mediaRecorder.start();
+                showStatus("Registrazione in corso...");
+            } catch (err) {
+                showStatus(`Errore: ${err.message}`, true);
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+            }
+        }
+
+        function sendRecording() {
+            if (audioChunks.length > 0) {
+                showStatus("Messaggio inviato con successo!");
+                audioChunks = [];
+            }
+        }
+
+        function cancelRecording() {
+            audioChunks = [];
+            showStatus("Registrazione cancellata");
+        }
+
+        function toggleContrast() {
+            document.body.classList.toggle('high-contrast');
+        }
+
+        // Controllo HTTPS
+        if (window.location.protocol !== 'https:') {
+            showStatus("ATTENZIONE: Per usare la chat accedi via HTTPS", true);
+            document.querySelectorAll('.chat-buttons button').forEach(btn => btn.disabled = true);
+        }
+    </script>
+</body>
+</html>
